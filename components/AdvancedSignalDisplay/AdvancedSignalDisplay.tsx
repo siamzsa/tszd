@@ -22,22 +22,27 @@ export default function AdvancedSignalDisplay({ signal, isLoading }: AdvancedSig
 
   if (!signal) {
     return (
-      <div className="w-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-lg p-12 border-2 border-dashed border-gray-300 dark:border-gray-700">
+      <div className="w-full bg-gradient-to-br from-white via-blue-50/50 to-indigo-50/50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900 rounded-2xl shadow-xl p-8 md:p-12 border-2 border-dashed border-blue-200 dark:border-gray-700">
         <div className="text-center">
-          <div className="mb-4">
-            <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
+          <div className="mb-6">
+            <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-full flex items-center justify-center">
+              <svg className="w-10 h-10 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
           </div>
-          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
+          <h3 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-200 mb-3">
             Ready to Generate Signal
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            Select a market from the dropdown and click &quot;Generate Signal&quot; to get professional trading signals
+          <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
+            Select a market from the dropdown and click &quot;Generate Signal&quot; to get professional trading signals with advanced technical analysis
           </p>
-          <div className="inline-flex items-center px-4 py-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
-            <span className="text-sm text-primary-700 dark:text-primary-300">
-              💡 Signal will appear here after generation
+          <div className="inline-flex items-center px-5 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl shadow-lg">
+            <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span className="text-sm font-semibold">
+              Signal will appear here after generation
             </span>
           </div>
         </div>
@@ -62,49 +67,63 @@ export default function AdvancedSignalDisplay({ signal, isLoading }: AdvancedSig
   return (
     <div className="w-full space-y-6 animate-fadeIn">
       {/* Main Signal Card */}
-      <div className={`w-full rounded-xl shadow-2xl p-8 border-2 ${signalBgColor} transform transition-all duration-300 hover:scale-[1.01]`}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <div className={`w-full rounded-2xl shadow-2xl p-6 md:p-8 border-2 ${signalBgColor} transform transition-all duration-300 hover:shadow-3xl relative overflow-hidden`}>
+        {/* Decorative gradient overlay */}
+        <div className={`absolute top-0 right-0 w-64 h-64 ${isBuy ? 'bg-green-200' : 'bg-red-200'} dark:${isBuy ? 'bg-green-900' : 'bg-red-900'} opacity-10 rounded-full blur-3xl -mr-32 -mt-32`}></div>
+        <div className="relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-6">
           {/* Signal and Confidence */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-2">
+          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
               Trading Signal
             </h3>
-            <div className={`text-5xl font-bold mb-2 ${isBuy ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+            <div className={`text-4xl md:text-5xl font-black mb-2 ${isBuy ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} drop-shadow-lg`}>
               {signal.signal}
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              {confirmationCount}/{totalConfirmations} Confirmations
+            <div className="flex items-center space-x-2 text-xs font-medium text-gray-600 dark:text-gray-400">
+              <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">
+                {confirmationCount}/{totalConfirmations}
+              </span>
+              <span>Confirmations</span>
             </div>
           </div>
 
           {/* Confidence */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-2">
+          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
               Confidence
             </h3>
-            <div className={`text-5xl font-bold ${confidenceColor}`}>
+            <div className={`text-4xl md:text-5xl font-black ${confidenceColor} drop-shadow-lg`}>
               {signal.confidence.toFixed(0)}%
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Target: 80% Accuracy
+            <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mt-2">
+              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">
+                Target: 80%
+              </span>
             </div>
           </div>
 
           {/* Countdown Timer */}
-          <div>
+          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200 dark:border-gray-700">
             <CountdownTimer targetTime={signal.nextCandleTime} label="Next 1-Min Candle" />
           </div>
         </div>
 
         {/* Confidence Bar */}
-        <div className="mb-6">
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4">
+        <div className="mb-6 relative z-10">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">Confidence Level</span>
+            <span className={`text-xs font-bold ${confidenceColor}`}>
+              {signal.confidence.toFixed(0)}%
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-5 shadow-inner">
             <div
-              className={`h-4 rounded-full transition-all duration-500 ${
-                signal.confidence >= 80 ? 'bg-green-500' :
-                signal.confidence >= 70 ? 'bg-yellow-500' :
-                signal.confidence >= 60 ? 'bg-orange-500' :
-                'bg-red-500'
+              className={`h-5 rounded-full transition-all duration-700 shadow-lg ${
+                signal.confidence >= 80 ? 'bg-gradient-to-r from-green-500 to-green-600' :
+                signal.confidence >= 70 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' :
+                signal.confidence >= 60 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
+                'bg-gradient-to-r from-red-500 to-red-600'
               }`}
               style={{ width: `${signal.confidence}%` }}
             ></div>
@@ -112,36 +131,36 @@ export default function AdvancedSignalDisplay({ signal, isLoading }: AdvancedSig
         </div>
 
         {/* Price Information */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-white dark:bg-gray-700 rounded-lg p-4">
-            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">
+        <div className="grid grid-cols-3 gap-3 md:gap-4 mb-6 relative z-10">
+          <div className="bg-white/90 dark:bg-gray-700/90 backdrop-blur-sm rounded-xl p-4 border border-gray-200 dark:border-gray-600 shadow-md">
+            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2 tracking-wide">
               Current Price
             </div>
-            <div className="text-xl font-bold text-gray-900 dark:text-white">
+            <div className="text-lg md:text-xl font-black text-gray-900 dark:text-white">
               {signal.currentPrice.toFixed(4)}
             </div>
           </div>
-          <div className="bg-white dark:bg-gray-700 rounded-lg p-4">
-            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">
+          <div className="bg-white/90 dark:bg-gray-700/90 backdrop-blur-sm rounded-xl p-4 border border-gray-200 dark:border-gray-600 shadow-md">
+            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2 tracking-wide">
               Price Change
             </div>
-            <div className={`text-xl font-bold ${signal.priceChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div className={`text-lg md:text-xl font-black ${signal.priceChange >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
               {signal.priceChange >= 0 ? '+' : ''}{signal.priceChange.toFixed(4)}
             </div>
           </div>
-          <div className="bg-white dark:bg-gray-700 rounded-lg p-4">
-            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">
+          <div className="bg-white/90 dark:bg-gray-700/90 backdrop-blur-sm rounded-xl p-4 border border-gray-200 dark:border-gray-600 shadow-md">
+            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2 tracking-wide">
               Change %
             </div>
-            <div className={`text-xl font-bold ${signal.priceChangePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div className={`text-lg md:text-xl font-black ${signal.priceChangePercent >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
               {signal.priceChangePercent >= 0 ? '+' : ''}{signal.priceChangePercent.toFixed(2)}%
             </div>
           </div>
         </div>
 
         {/* Technical Indicators Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white dark:bg-gray-700 rounded-lg p-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 relative z-10">
+          <div className="bg-white/90 dark:bg-gray-700/90 backdrop-blur-sm rounded-xl p-3 md:p-4 border border-gray-200 dark:border-gray-600 shadow-md">
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">RSI</div>
             <div className={`text-lg font-bold ${
               signal.technicalIndicators.rsi > 70 ? 'text-red-600' :
@@ -155,7 +174,7 @@ export default function AdvancedSignalDisplay({ signal, isLoading }: AdvancedSig
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-700 rounded-lg p-3">
+          <div className="bg-white/90 dark:bg-gray-700/90 backdrop-blur-sm rounded-xl p-3 md:p-4 border border-gray-200 dark:border-gray-600 shadow-md">
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">MACD</div>
             <div className={`text-lg font-bold ${
               signal.technicalIndicators.macd.histogram > 0 ? 'text-green-600' : 'text-red-600'
@@ -167,7 +186,7 @@ export default function AdvancedSignalDisplay({ signal, isLoading }: AdvancedSig
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-700 rounded-lg p-3">
+          <div className="bg-white/90 dark:bg-gray-700/90 backdrop-blur-sm rounded-xl p-3 md:p-4 border border-gray-200 dark:border-gray-600 shadow-md">
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">ADX</div>
             <div className={`text-lg font-bold ${
               signal.technicalIndicators.adx > 25 ? 'text-green-600' : 'text-gray-600 dark:text-gray-300'
@@ -179,7 +198,7 @@ export default function AdvancedSignalDisplay({ signal, isLoading }: AdvancedSig
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-700 rounded-lg p-3">
+          <div className="bg-white/90 dark:bg-gray-700/90 backdrop-blur-sm rounded-xl p-3 md:p-4 border border-gray-200 dark:border-gray-600 shadow-md">
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Stochastic</div>
             <div className="text-lg font-bold text-gray-600 dark:text-gray-300">
               {signal.technicalIndicators.stochastic.k.toFixed(1)}
@@ -191,8 +210,11 @@ export default function AdvancedSignalDisplay({ signal, isLoading }: AdvancedSig
         </div>
 
         {/* Confirmations */}
-        <div className="bg-white dark:bg-gray-700 rounded-lg p-4 mb-6">
-          <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+        <div className="bg-white/90 dark:bg-gray-700/90 backdrop-blur-sm rounded-xl p-4 md:p-5 mb-6 border border-gray-200 dark:border-gray-600 shadow-md relative z-10">
+          <div className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-4 flex items-center">
+            <svg className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
             Signal Confirmations:
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -211,14 +233,19 @@ export default function AdvancedSignalDisplay({ signal, isLoading }: AdvancedSig
 
         {/* Weekend Direction */}
         {signal.weekendDirection && (
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg p-4 mb-6 border border-blue-200 dark:border-blue-800">
-            <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Weekend Direction Prediction:
+          <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-900/30 dark:via-indigo-900/30 dark:to-purple-900/30 rounded-xl p-5 mb-6 border-2 border-blue-200 dark:border-blue-800 shadow-lg relative z-10">
+            <div className="flex items-center mb-3">
+              <svg className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              <div className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                Weekend Direction Prediction:
+              </div>
             </div>
-            <div className={`text-2xl font-bold ${
-              signal.weekendDirection === 'UP' ? 'text-green-600' :
-              signal.weekendDirection === 'DOWN' ? 'text-red-600' :
-              'text-gray-600'
+            <div className={`text-3xl font-black ${
+              signal.weekendDirection === 'UP' ? 'text-green-600 dark:text-green-400' :
+              signal.weekendDirection === 'DOWN' ? 'text-red-600 dark:text-red-400' :
+              'text-gray-600 dark:text-gray-400'
             }`}>
               {signal.weekendDirection}
             </div>
@@ -226,30 +253,36 @@ export default function AdvancedSignalDisplay({ signal, isLoading }: AdvancedSig
         )}
 
         {/* Trend Indicator */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Trend:</span>
-            <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-              signal.trend === 'UP' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' :
-              signal.trend === 'DOWN' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' :
-              'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+        <div className="flex items-center justify-between mb-4 relative z-10">
+          <div className="flex items-center space-x-3">
+            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Trend:</span>
+            <span className={`px-4 py-2 rounded-full text-sm font-bold shadow-md ${
+              signal.trend === 'UP' ? 'bg-gradient-to-r from-green-500 to-green-600 text-white' :
+              signal.trend === 'DOWN' ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' :
+              'bg-gray-500 text-white'
             }`}>
               {signal.trend}
             </span>
           </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">
+          <div className="text-xs font-medium text-gray-600 dark:text-gray-400 bg-white/80 dark:bg-gray-800/80 px-3 py-1 rounded-lg">
             {new Date(signal.timestamp).toLocaleString()}
           </div>
         </div>
 
         {/* Detailed Analysis */}
-        <div className="bg-white dark:bg-gray-700 rounded-lg p-4">
-          <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Professional Analysis:
+        <div className="bg-white/90 dark:bg-gray-700/90 backdrop-blur-sm rounded-xl p-5 border border-gray-200 dark:border-gray-600 shadow-md relative z-10">
+          <div className="flex items-center mb-3">
+            <svg className="w-5 h-5 mr-2 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <div className="text-sm font-bold text-gray-700 dark:text-gray-300">
+              Professional Analysis:
+            </div>
           </div>
-          <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+          <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
             {signal.analysis}
           </div>
+        </div>
         </div>
       </div>
     </div>
