@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_KEY = '1c828b92902718181d5d059fd764dd38';
+const API_KEY = '0f10c2e281846ebc5f36eb6abce2b443';
 const BASE_URL = 'https://apilayer.net/api';
 
 export interface CurrencyRate {
@@ -27,11 +27,95 @@ export interface HistoricalRatesResponse {
   quotes: CurrencyRate;
 }
 
+export interface APIStatus {
+  isValid: boolean;
+  isConnected: boolean;
+  message: string;
+  errorCode?: string;
+}
+
 export class CurrencyLayerAPI {
   private apiKey: string;
 
   constructor(apiKey: string = API_KEY) {
     this.apiKey = apiKey;
+  }
+
+  /**
+   * Validate API key and connection
+   * Returns true only if API is working correctly
+   */
+  async validateAPI(): Promise<APIStatus> {
+    try {
+      // Test with a simple request
+      const response = await axios.get<LiveRatesResponse>(`${BASE_URL}/live`, {
+        params: {
+          access_key: this.apiKey,
+          currencies: 'USD',
+          source: 'USD',
+          format: 1,
+        },
+        timeout: 10000, // 10 second timeout
+      });
+
+      // Check if API returned success
+      if (!response.data.success) {
+        const errorCode = (response.data as any).error?.code;
+        const errorInfo = (response.data as any).error?.info || 'API validation failed';
+        
+        return {
+          isValid: false,
+          isConnected: false,
+          message: errorInfo,
+          errorCode: errorCode,
+        };
+      }
+
+      // Check if we got valid data
+      if (!response.data.quotes || Object.keys(response.data.quotes).length === 0) {
+        return {
+          isValid: false,
+          isConnected: true,
+          message: 'API connected but returned empty data',
+        };
+      }
+
+      return {
+        isValid: true,
+        isConnected: true,
+        message: 'API is valid and connected successfully',
+      };
+    } catch (error: any) {
+      console.error('API validation error:', error);
+      
+      let message = 'Failed to connect to API';
+      let errorCode: string | undefined;
+
+      if (error.response) {
+        // API returned an error response
+        const apiError = error.response.data?.error;
+        if (apiError) {
+          message = apiError.info || 'API request failed';
+          errorCode = apiError.code;
+        } else {
+          message = `API returned error: ${error.response.status}`;
+        }
+      } else if (error.request) {
+        // Request was made but no response received
+        message = 'No response from API server. Please check your internet connection.';
+      } else if (error.code === 'ECONNABORTED') {
+        message = 'API request timeout. Please try again.';
+      } else {
+        message = error.message || 'Unknown API error';
+      }
+
+      return {
+        isValid: false,
+        isConnected: false,
+        message,
+        errorCode,
+      };
+    }
   }
 
   /**
@@ -103,6 +187,8 @@ export class CurrencyLayerAPI {
    * Get market data for analysis (current and historical)
    * For a pair like EUR/USD, we want 1 EUR = X USD
    * So we use EUR as source and request USD
+   * 
+   * IMPORTANT: This method will only return data if API is valid and working
    */
   async getMarketDataForAnalysis(
     currencyPair: string
@@ -110,6 +196,12 @@ export class CurrencyLayerAPI {
     current: LiveRatesResponse;
     historical: HistoricalRatesResponse[];
   }> {
+    // First validate API before proceeding
+    const apiStatus = await this.validateAPI();
+    if (!apiStatus.isValid || !apiStatus.isConnected) {
+      throw new Error(`API Error: ${apiStatus.message}. Signal generation requires a valid API connection.`);
+    }
+
     if (!currencyPair || !currencyPair.includes('/')) {
       throw new Error('Invalid currency pair format. Expected format: BASE/QUOTE (e.g., EUR/USD)');
     }
@@ -126,13 +218,18 @@ export class CurrencyLayerAPI {
     const targetCurrency = quote;
     const currencies = [targetCurrency];
 
-    // Get current rates
-    const current = await this.getLiveRates(currencies, apiSource);
+    // Get current rates with validation
+    let current: LiveRatesResponse;
+    try {
+      current = await this.getLiveRates(currencies, apiSource);
+    } catch (error: any) {
+      throw new Error(`API call failed: ${error.message}. Please ensure your API key is valid and has sufficient quota.`);
+    }
 
     // Validate current rates
     const pairKey = `${current.source}${quote}`;
     if (!current.quotes || !current.quotes[pairKey]) {
-      throw new Error(`Unable to fetch current rate for ${currencyPair}. The currency pair may not be supported.`);
+      throw new Error(`Unable to fetch current rate for ${currencyPair}. The currency pair may not be supported by your API plan.`);
     }
 
     // Get historical rates for last 7 days

@@ -88,6 +88,20 @@ npm start
 
 The application uses the CurrencyLayer API. The API key is configured in `lib/api/currencylayer.ts`. 
 
+### API Validation System
+
+**IMPORTANT**: The application includes a professional API validation system:
+
+- ✅ **Signal Generation**: Signals are ONLY generated when:
+  - API key is valid
+  - API connection is successful
+  - API returns valid data
+  - API call completes without errors
+
+- ❌ **No Signal on Error**: If API fails, no signal will be generated. The system will show clear error messages.
+
+- 🔍 **Real-time Status**: API status indicator shows connection status in real-time.
+
 **Note**: For production use, move the API key to environment variables.
 
 ## Components

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import MarketSelector from '@/components/MarketSelector/MarketSelector';
 import GenerateButton from '@/components/GenerateButton/GenerateButton';
 import AdvancedSignalDisplay from '@/components/AdvancedSignalDisplay/AdvancedSignalDisplay';
+import ApiStatusIndicator from '@/components/ApiStatusIndicator/ApiStatusIndicator';
 import { currencyLayerAPI } from '@/lib/api/currencylayer';
 import { advancedSignalAnalyzer, AdvancedTradingSignal } from '@/lib/analysis/advancedSignalAnalyzer';
 
@@ -24,9 +25,18 @@ export default function Home() {
     setSignal(null);
 
     try {
-      // Get market data from API
+      // IMPORTANT: First validate API before generating signal
+      // Signal will only be generated if API is valid and working
+      const apiStatus = await currencyLayerAPI.validateAPI();
+      
+      if (!apiStatus.isValid || !apiStatus.isConnected) {
+        throw new Error(`API Error: ${apiStatus.message}. Signal generation requires a valid API connection. Please check your API key and quota.`);
+      }
+
+      // Get market data from API (this will also validate API internally)
       const marketData = await currencyLayerAPI.getMarketDataForAnalysis(selectedMarket);
       
+      // Only generate signal if API call was successful
       // Analyze with advanced technical indicators
       const generatedSignal = advancedSignalAnalyzer.analyzeMarket(
         selectedMarket,
@@ -34,19 +44,23 @@ export default function Home() {
         marketData.historical
       );
 
+      // Signal successfully generated - API was working correctly
       setSignal(generatedSignal);
+      setError(null);
     } catch (err: any) {
       console.error('Error generating signal:', err);
-      let errorMessage = 'Failed to generate signal. Please try again.';
+      let errorMessage = 'Failed to generate signal.';
       
       if (err.message) {
         errorMessage = err.message;
       } else if (err.response?.data?.error?.info) {
-        errorMessage = err.response.data.error.info;
+        errorMessage = `API Error: ${err.response.data.error.info}`;
       } else if (typeof err === 'string') {
         errorMessage = err;
       }
       
+      // Clear signal if there's an error - no signal should be shown
+      setSignal(null);
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -75,6 +89,11 @@ export default function Home() {
                 Market Selection
               </h2>
               
+              {/* API Status Indicator */}
+              <div className="mb-4">
+                <ApiStatusIndicator />
+              </div>
+              
               <div className="space-y-6">
                 <MarketSelector
                   onMarketSelect={setSelectedMarket}
@@ -90,7 +109,18 @@ export default function Home() {
 
               {error && (
                 <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                  <div className="flex items-start space-x-2">
+                    <span className="text-red-600 dark:text-red-400 text-lg">⚠️</span>
+                    <div>
+                      <p className="text-sm font-medium text-red-700 dark:text-red-300 mb-1">
+                        Signal Generation Failed
+                      </p>
+                      <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                      <p className="text-xs text-red-500 dark:text-red-400 mt-2">
+                        Note: Signals are only generated when API is valid and working correctly.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

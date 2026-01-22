@@ -297,3 +297,4 @@ export class TechnicalIndicatorCalculator {
 
 export const technicalCalculator = new TechnicalIndicatorCalculator();
 
+
