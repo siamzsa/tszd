@@ -229,35 +229,91 @@ export class CurrencyLayerAPI {
     const targetCurrency = quote;
     const currencies = [targetCurrency];
 
-    // Get current rates
+    // Get current rates - try direct call first
     let current: LiveRatesResponse;
     try {
       current = await this.getLiveRates(currencies, apiSource);
     } catch (error: any) {
-      // Provide more helpful error messages
-      let errorMsg = error.message || 'API call failed';
-      
-      if (error.response?.data?.error) {
-        const apiError = error.response.data.error;
-        if (apiError.code === '101') {
-          errorMsg = 'Invalid API key. Please check your API key configuration.';
-        } else if (apiError.code === '104') {
-          errorMsg = 'Monthly API request limit reached. Please upgrade your plan or wait for next month.';
-        } else {
-          errorMsg = apiError.info || errorMsg;
+      // If direct call fails, try with USD as source (more common)
+      if (apiSource !== 'USD') {
+        try {
+          console.log(`Trying alternative: Using USD as source for ${currencyPair}`);
+          const usdCurrencies = [base, quote];
+          const usdResponse = await this.getLiveRates(usdCurrencies, 'USD');
+          
+          // Convert to the format we need
+          const baseKey = `USD${base}`;
+          const quoteKey = `USD${quote}`;
+          
+          if (usdResponse.quotes[baseKey] && usdResponse.quotes[quoteKey]) {
+            // Calculate cross rate
+            const baseRate = usdResponse.quotes[baseKey];
+            const quoteRate = usdResponse.quotes[quoteKey];
+            const crossRate = quoteRate / baseRate;
+            
+            // Create a modified response
+            current = {
+              ...usdResponse,
+              source: base,
+              quotes: {
+                [`${base}${quote}`]: crossRate
+              }
+            };
+          } else {
+            throw error; // Use original error
+          }
+        } catch (altError) {
+          // If alternative also fails, use original error
+          let errorMsg = error.message || 'API call failed';
+          
+          if (error.response?.data?.error) {
+            const apiError = error.response.data.error;
+            if (apiError.code === '101') {
+              errorMsg = 'Invalid API key. Please check your API key configuration.';
+            } else if (apiError.code === '104') {
+              errorMsg = 'Monthly API request limit reached. Please upgrade your plan or wait for next month.';
+            } else {
+              errorMsg = apiError.info || errorMsg;
+            }
+          }
+          
+          throw new Error(`Failed to fetch current rates: ${errorMsg}`);
         }
+      } else {
+        // Original error handling
+        let errorMsg = error.message || 'API call failed';
+        
+        if (error.response?.data?.error) {
+          const apiError = error.response.data.error;
+          if (apiError.code === '101') {
+            errorMsg = 'Invalid API key. Please check your API key configuration.';
+          } else if (apiError.code === '104') {
+            errorMsg = 'Monthly API request limit reached. Please upgrade your plan or wait for next month.';
+          } else {
+            errorMsg = apiError.info || errorMsg;
+          }
+        }
+        
+        throw new Error(`Failed to fetch current rates: ${errorMsg}`);
       }
-      
-      throw new Error(`Failed to fetch current rates: ${errorMsg}`);
     }
 
-    // Validate current rates
+    // Validate current rates - be more flexible
     const pairKey = `${current.source}${quote}`;
     if (!current.quotes || !current.quotes[pairKey]) {
-      // Try alternative approach - maybe the pair needs to be requested differently
-      const altPairKey = Object.keys(current.quotes || {})[0];
-      if (altPairKey) {
-        console.warn(`Expected pair key ${pairKey} not found, but found ${altPairKey}. Using available data.`);
+      // Try to find any matching quote
+      const availableKeys = Object.keys(current.quotes || {});
+      const matchingKey = availableKeys.find(key => 
+        key.includes(base) || key.includes(quote)
+      );
+      
+      if (matchingKey && current.quotes[matchingKey]) {
+        console.warn(`Using alternative quote key: ${matchingKey} instead of ${pairKey}`);
+        // Use the available quote
+      } else if (availableKeys.length > 0) {
+        // Use first available quote as fallback
+        const firstKey = availableKeys[0];
+        console.warn(`Using fallback quote key: ${firstKey}`);
       } else {
         throw new Error(`Unable to fetch current rate for ${currencyPair}. The currency pair may not be supported by your API plan.`);
       }

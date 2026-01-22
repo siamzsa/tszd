@@ -26,19 +26,32 @@ export default function Home() {
 
     try {
       // Get market data from API
-      // API validation happens inside getMarketDataForAnalysis
       const marketData = await currencyLayerAPI.getMarketDataForAnalysis(selectedMarket);
       
       // Validate that we have current data
-      if (!marketData.current || !marketData.current.quotes) {
-        throw new Error('Invalid API response: No market data received.');
+      if (!marketData.current) {
+        throw new Error('Invalid API response: No current market data received.');
+      }
+
+      if (!marketData.current.quotes || Object.keys(marketData.current.quotes).length === 0) {
+        throw new Error('Invalid API response: No exchange rate data received.');
+      }
+
+      // Check if we have at least some data for analysis
+      const [base, quote] = selectedMarket.split('/');
+      const pairKey = `${marketData.current.source}${quote}`;
+      const hasRate = marketData.current.quotes[pairKey] || 
+                     Object.values(marketData.current.quotes)[0];
+
+      if (!hasRate || hasRate === 0) {
+        throw new Error(`Unable to get valid exchange rate for ${selectedMarket}. Please try another currency pair.`);
       }
 
       // Analyze with advanced technical indicators
       const generatedSignal = advancedSignalAnalyzer.analyzeMarket(
         selectedMarket,
         marketData.current,
-        marketData.historical
+        marketData.historical || []
       );
 
       // Signal successfully generated
@@ -46,17 +59,21 @@ export default function Home() {
       setError(null);
     } catch (err: any) {
       console.error('Error generating signal:', err);
+      
       let errorMessage = 'Failed to generate signal.';
       
+      // Extract meaningful error message
       if (err.message) {
         errorMessage = err.message;
       } else if (err.response?.data?.error?.info) {
-        errorMessage = `API Error: ${err.response.data.error.info}`;
+        errorMessage = err.response.data.error.info;
+      } else if (err.response?.data?.error?.message) {
+        errorMessage = err.response.data.error.message;
       } else if (typeof err === 'string') {
         errorMessage = err;
       }
       
-      // Clear signal if there's an error - no signal should be shown
+      // Clear signal if there's an error
       setSignal(null);
       setError(errorMessage);
     } finally {
