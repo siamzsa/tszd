@@ -191,7 +191,9 @@ export default function Home() {
 
           {/* Right Panel - Signal Display */}
           <div className="lg:col-span-2">
-            <AdvancedSignalDisplay signal={signal} isLoading={isLoading} />
+            <div className="sticky top-4">
+              <AdvancedSignalDisplay signal={signal} isLoading={isLoading} />
+            </div>
           </div>
         </div>
 

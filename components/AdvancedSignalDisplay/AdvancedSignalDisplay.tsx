@@ -22,9 +22,24 @@ export default function AdvancedSignalDisplay({ signal, isLoading }: AdvancedSig
 
   if (!signal) {
     return (
-      <div className="w-full bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 border border-gray-200 dark:border-gray-700">
-        <div className="text-center text-gray-500 dark:text-gray-400">
-          Select a market and click Generate to get professional trading signals
+      <div className="w-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-lg p-12 border-2 border-dashed border-gray-300 dark:border-gray-700">
+        <div className="text-center">
+          <div className="mb-4">
+            <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            Ready to Generate Signal
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Select a market from the dropdown and click &quot;Generate Signal&quot; to get professional trading signals
+          </p>
+          <div className="inline-flex items-center px-4 py-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
+            <span className="text-sm text-primary-700 dark:text-primary-300">
+              💡 Signal will appear here after generation
+            </span>
+          </div>
         </div>
       </div>
     );
@@ -45,9 +60,9 @@ export default function AdvancedSignalDisplay({ signal, isLoading }: AdvancedSig
   const totalConfirmations = Object.keys(signal.confirmations).length;
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-6 animate-fadeIn">
       {/* Main Signal Card */}
-      <div className={`w-full rounded-xl shadow-lg p-8 border-2 ${signalBgColor}`}>
+      <div className={`w-full rounded-xl shadow-2xl p-8 border-2 ${signalBgColor} transform transition-all duration-300 hover:scale-[1.01]`}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           {/* Signal and Confidence */}
           <div>
