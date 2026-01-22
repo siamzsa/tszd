@@ -15,16 +15,20 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
 
   const handleGenerateSignal = async () => {
-    if (!selectedMarket) {
+    console.log('Generate Signal clicked, selectedMarket:', selectedMarket);
+    
+    if (!selectedMarket || selectedMarket.trim() === '') {
       setError('Please select a market first');
       return;
     }
 
     // Prevent multiple simultaneous calls
     if (isLoading) {
+      console.log('Already loading, skipping...');
       return;
     }
 
+    console.log('Starting signal generation...');
     setIsLoading(true);
     setError(null);
     setSignal(null);
@@ -75,10 +79,16 @@ export default function Home() {
       );
 
       // Signal successfully generated - clear any previous errors
+      console.log('Signal generated successfully:', generatedSignal);
       setSignal(generatedSignal);
       setError(null);
     } catch (err: any) {
       console.error('Error generating signal:', err);
+      console.error('Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        stack: err.stack
+      });
       
       let errorMessage = 'Failed to generate signal. Please try again.';
       
@@ -147,8 +157,15 @@ export default function Home() {
                 />
                 
                 <GenerateButton
-                  onClick={handleGenerateSignal}
-                  disabled={!selectedMarket}
+                  onClick={() => {
+                    console.log('Generate Button clicked, selectedMarket:', selectedMarket);
+                    if (selectedMarket && selectedMarket.trim() !== '') {
+                      handleGenerateSignal();
+                    } else {
+                      setError('Please select a market first');
+                    }
+                  }}
+                  disabled={!selectedMarket || selectedMarket.trim() === ''}
                   isLoading={isLoading}
                 />
               </div>
