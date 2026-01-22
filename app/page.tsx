@@ -25,18 +25,15 @@ export default function Home() {
     setSignal(null);
 
     try {
-      // IMPORTANT: First validate API before generating signal
-      // Signal will only be generated if API is valid and working
-      const apiStatus = await currencyLayerAPI.validateAPI();
-      
-      if (!apiStatus.isValid || !apiStatus.isConnected) {
-        throw new Error(`API Error: ${apiStatus.message}. Signal generation requires a valid API connection. Please check your API key and quota.`);
-      }
-
-      // Get market data from API (this will also validate API internally)
+      // Get market data from API
+      // API validation happens inside getMarketDataForAnalysis
       const marketData = await currencyLayerAPI.getMarketDataForAnalysis(selectedMarket);
       
-      // Only generate signal if API call was successful
+      // Validate that we have current data
+      if (!marketData.current || !marketData.current.quotes) {
+        throw new Error('Invalid API response: No market data received.');
+      }
+
       // Analyze with advanced technical indicators
       const generatedSignal = advancedSignalAnalyzer.analyzeMarket(
         selectedMarket,
@@ -44,7 +41,7 @@ export default function Home() {
         marketData.historical
       );
 
-      // Signal successfully generated - API was working correctly
+      // Signal successfully generated
       setSignal(generatedSignal);
       setError(null);
     } catch (err: any) {

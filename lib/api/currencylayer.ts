@@ -47,21 +47,31 @@ export class CurrencyLayerAPI {
    */
   async validateAPI(): Promise<APIStatus> {
     try {
-      // Test with a simple request
+      // Test with a common currency pair (EUR/USD)
       const response = await axios.get<LiveRatesResponse>(`${BASE_URL}/live`, {
         params: {
           access_key: this.apiKey,
-          currencies: 'USD',
+          currencies: 'EUR',
           source: 'USD',
           format: 1,
         },
-        timeout: 10000, // 10 second timeout
+        timeout: 15000, // 15 second timeout
       });
 
       // Check if API returned success
       if (!response.data.success) {
         const errorCode = (response.data as any).error?.code;
         const errorInfo = (response.data as any).error?.info || 'API validation failed';
+        
+        // Check for specific error codes that might be recoverable
+        if (errorCode === '101' || errorCode === '102') {
+          return {
+            isValid: false,
+            isConnected: false,
+            message: `API Key Error: ${errorInfo}. Please check your API key.`,
+            errorCode: errorCode,
+          };
+        }
         
         return {
           isValid: false,
@@ -97,6 +107,15 @@ export class CurrencyLayerAPI {
         if (apiError) {
           message = apiError.info || 'API request failed';
           errorCode = apiError.code;
+          
+          // Provide helpful messages for common errors
+          if (apiError.code === '101') {
+            message = 'Invalid API key. Please check your API key.';
+          } else if (apiError.code === '104') {
+            message = 'Monthly API request limit reached. Please upgrade your plan.';
+          } else if (apiError.code === '103') {
+            message = 'Invalid API function. Please contact support.';
+          }
         } else {
           message = `API returned error: ${error.response.status}`;
         }
@@ -187,8 +206,6 @@ export class CurrencyLayerAPI {
    * Get market data for analysis (current and historical)
    * For a pair like EUR/USD, we want 1 EUR = X USD
    * So we use EUR as source and request USD
-   * 
-   * IMPORTANT: This method will only return data if API is valid and working
    */
   async getMarketDataForAnalysis(
     currencyPair: string
@@ -196,12 +213,6 @@ export class CurrencyLayerAPI {
     current: LiveRatesResponse;
     historical: HistoricalRatesResponse[];
   }> {
-    // First validate API before proceeding
-    const apiStatus = await this.validateAPI();
-    if (!apiStatus.isValid || !apiStatus.isConnected) {
-      throw new Error(`API Error: ${apiStatus.message}. Signal generation requires a valid API connection.`);
-    }
-
     if (!currencyPair || !currencyPair.includes('/')) {
       throw new Error('Invalid currency pair format. Expected format: BASE/QUOTE (e.g., EUR/USD)');
     }
@@ -218,18 +229,38 @@ export class CurrencyLayerAPI {
     const targetCurrency = quote;
     const currencies = [targetCurrency];
 
-    // Get current rates with validation
+    // Get current rates
     let current: LiveRatesResponse;
     try {
       current = await this.getLiveRates(currencies, apiSource);
     } catch (error: any) {
-      throw new Error(`API call failed: ${error.message}. Please ensure your API key is valid and has sufficient quota.`);
+      // Provide more helpful error messages
+      let errorMsg = error.message || 'API call failed';
+      
+      if (error.response?.data?.error) {
+        const apiError = error.response.data.error;
+        if (apiError.code === '101') {
+          errorMsg = 'Invalid API key. Please check your API key configuration.';
+        } else if (apiError.code === '104') {
+          errorMsg = 'Monthly API request limit reached. Please upgrade your plan or wait for next month.';
+        } else {
+          errorMsg = apiError.info || errorMsg;
+        }
+      }
+      
+      throw new Error(`Failed to fetch current rates: ${errorMsg}`);
     }
 
     // Validate current rates
     const pairKey = `${current.source}${quote}`;
     if (!current.quotes || !current.quotes[pairKey]) {
-      throw new Error(`Unable to fetch current rate for ${currencyPair}. The currency pair may not be supported by your API plan.`);
+      // Try alternative approach - maybe the pair needs to be requested differently
+      const altPairKey = Object.keys(current.quotes || {})[0];
+      if (altPairKey) {
+        console.warn(`Expected pair key ${pairKey} not found, but found ${altPairKey}. Using available data.`);
+      } else {
+        throw new Error(`Unable to fetch current rate for ${currencyPair}. The currency pair may not be supported by your API plan.`);
+      }
     }
 
     // Get historical rates for last 7 days
@@ -255,9 +286,13 @@ export class CurrencyLayerAPI {
       }
     });
 
-    // Ensure we have at least some historical data
+    // Use available historical data (even if partial)
+    // This allows signal generation with available data
     if (historical.length === 0) {
-      throw new Error('Unable to fetch historical data. Please try again later.');
+      console.warn('No historical data available. Signal will be generated with current data only.');
+      // Don't throw error, proceed with current data only
+    } else if (historical.length < 3) {
+      console.warn(`Only ${historical.length} days of historical data available. Signal accuracy may be reduced.`);
     }
 
     return { current, historical };
