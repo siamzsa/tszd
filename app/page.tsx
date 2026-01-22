@@ -20,15 +20,20 @@ export default function Home() {
       return;
     }
 
+    // Prevent multiple simultaneous calls
+    if (isLoading) {
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setSignal(null);
 
     try {
-      // Get market data from API
+      // Get market data from API (with automatic retry built-in)
       const marketData = await currencyLayerAPI.getMarketDataForAnalysis(selectedMarket);
       
-      // Validate that we have current data
+      // Quick validation - be more lenient
       if (!marketData.current) {
         throw new Error('Invalid API response: No current market data received.');
       }
@@ -37,30 +42,45 @@ export default function Home() {
         throw new Error('Invalid API response: No exchange rate data received.');
       }
 
-      // Check if we have at least some data for analysis
+      // Find any valid rate (more flexible)
       const [base, quote] = selectedMarket.split('/');
       const pairKey = `${marketData.current.source}${quote}`;
-      const hasRate = marketData.current.quotes[pairKey] || 
-                     Object.values(marketData.current.quotes)[0];
+      
+      // Try multiple ways to get the rate
+      let hasRate = marketData.current.quotes[pairKey];
+      
+      if (!hasRate || hasRate === 0) {
+        // Try alternative keys
+        const altKey = Object.keys(marketData.current.quotes).find(key => 
+          key.includes(base) || key.includes(quote)
+        );
+        if (altKey) {
+          hasRate = marketData.current.quotes[altKey];
+        } else {
+          // Use first available rate as fallback
+          hasRate = Object.values(marketData.current.quotes)[0] as number;
+        }
+      }
 
       if (!hasRate || hasRate === 0) {
         throw new Error(`Unable to get valid exchange rate for ${selectedMarket}. Please try another currency pair.`);
       }
 
       // Analyze with advanced technical indicators
+      // This should always work if we have current data
       const generatedSignal = advancedSignalAnalyzer.analyzeMarket(
         selectedMarket,
         marketData.current,
         marketData.historical || []
       );
 
-      // Signal successfully generated
+      // Signal successfully generated - clear any previous errors
       setSignal(generatedSignal);
       setError(null);
     } catch (err: any) {
       console.error('Error generating signal:', err);
       
-      let errorMessage = 'Failed to generate signal.';
+      let errorMessage = 'Failed to generate signal. Please try again.';
       
       // Extract meaningful error message
       if (err.message) {

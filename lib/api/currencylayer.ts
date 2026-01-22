@@ -138,68 +138,111 @@ export class CurrencyLayerAPI {
   }
 
   /**
-   * Get live exchange rates
+   * Get live exchange rates with retry mechanism
    */
-  async getLiveRates(currencies: string[], source: string = 'USD'): Promise<LiveRatesResponse> {
-    try {
-      const response = await axios.get<LiveRatesResponse>(`${BASE_URL}/live`, {
-        params: {
-          access_key: this.apiKey,
-          currencies: currencies.join(','),
-          source: source,
-          format: 1,
-        },
-      });
-      
-      // Check if API returned an error in the response
-      if (!response.data.success) {
-        const errorInfo = (response.data as any).error?.info || 'Unknown API error';
-        throw new Error(errorInfo);
+  async getLiveRates(currencies: string[], source: string = 'USD', retries: number = 2): Promise<LiveRatesResponse> {
+    let lastError: any;
+    
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const response = await axios.get<LiveRatesResponse>(`${BASE_URL}/live`, {
+          params: {
+            access_key: this.apiKey,
+            currencies: currencies.join(','),
+            source: source,
+            format: 1,
+          },
+          timeout: 20000, // 20 second timeout
+        });
+        
+        // Check if API returned an error in the response
+        if (!response.data.success) {
+          const errorInfo = (response.data as any).error?.info || 'Unknown API error';
+          throw new Error(errorInfo);
+        }
+        
+        // Success - return immediately
+        return response.data;
+      } catch (error: any) {
+        lastError = error;
+        
+        // Don't retry on certain errors
+        if (error.response?.data?.error?.code === '101' || error.response?.data?.error?.code === '104') {
+          throw error; // API key or quota errors - don't retry
+        }
+        
+        // If not last attempt, wait and retry
+        if (attempt < retries) {
+          const delay = (attempt + 1) * 500; // 500ms, 1000ms delays
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
       }
-      
-      return response.data;
-    } catch (error: any) {
-      console.error('Error fetching live rates:', error);
-      if (error.response?.data?.error) {
-        throw new Error(error.response.data.error.info || 'API request failed');
-      }
-      throw error;
     }
+    
+    // All retries failed
+    console.error('Error fetching live rates after retries:', lastError);
+    if (lastError.response?.data?.error) {
+      throw new Error(lastError.response.data.error.info || 'API request failed');
+    }
+    throw lastError;
   }
 
   /**
-   * Get historical exchange rates
+   * Get historical exchange rates with retry mechanism
    */
   async getHistoricalRates(
     date: string,
     currencies: string[],
-    source: string = 'USD'
+    source: string = 'USD',
+    retries: number = 1
   ): Promise<HistoricalRatesResponse> {
-    try {
-      const response = await axios.get<HistoricalRatesResponse>(`${BASE_URL}/historical`, {
-        params: {
-          access_key: this.apiKey,
-          date: date,
-          currencies: currencies.join(','),
-          source: source,
-          format: 1,
-        },
-      });
-      
-      // Check if API returned an error in the response
-      if (!response.data.success) {
-        const errorInfo = (response.data as any).error?.info || 'Unknown API error';
-        throw new Error(errorInfo);
+    let lastError: any;
+    
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const response = await axios.get<HistoricalRatesResponse>(`${BASE_URL}/historical`, {
+          params: {
+            access_key: this.apiKey,
+            date: date,
+            currencies: currencies.join(','),
+            source: source,
+            format: 1,
+          },
+          timeout: 20000, // 20 second timeout
+        });
+        
+        // Check if API returned an error in the response
+        if (!response.data.success) {
+          const errorInfo = (response.data as any).error?.info || 'Unknown API error';
+          throw new Error(errorInfo);
+        }
+        
+        // Success - return immediately
+        return response.data;
+      } catch (error: any) {
+        lastError = error;
+        
+        // Don't retry on certain errors
+        if (error.response?.data?.error?.code === '101' || error.response?.data?.error?.code === '104') {
+          throw error; // API key or quota errors - don't retry
+        }
+        
+        // If not last attempt, wait and retry
+        if (attempt < retries) {
+          const delay = (attempt + 1) * 300; // 300ms, 600ms delays
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
       }
-      
-      return response.data;
-    } catch (error: any) {
-      console.error('Error fetching historical rates:', error);
-      if (error.response?.data?.error) {
-        throw new Error(error.response.data.error.info || 'API request failed');
-      }
-      throw error;
     }
+    
+    // All retries failed - return error but don't throw for historical (we can work without it)
+    console.warn('Error fetching historical rates after retries:', lastError);
+    if (lastError.response?.data?.error) {
+      throw new Error(lastError.response.data.error.info || 'API request failed');
+    }
+    throw lastError;
   }
 
   /**
@@ -319,15 +362,23 @@ export class CurrencyLayerAPI {
       }
     }
 
-    // Get historical rates for last 7 days
+    // Get historical rates for last 7 days (optimized - only fetch what we need)
+    // Fetch fewer days for faster response, but ensure we have at least some data
     const historicalPromises: Promise<HistoricalRatesResponse>[] = [];
     const today = new Date();
+    const daysToFetch = 5; // Reduced from 7 for faster response
     
-    for (let i = 1; i <= 7; i++) {
+    for (let i = 1; i <= daysToFetch; i++) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
-      historicalPromises.push(this.getHistoricalRates(dateStr, currencies, apiSource));
+      // Use minimal retries for historical data (faster)
+      historicalPromises.push(
+        this.getHistoricalRates(dateStr, currencies, apiSource, 0).catch(() => {
+          // Return null if fails - we'll handle it
+          return null as any;
+        })
+      );
     }
 
     // Use Promise.allSettled to handle partial failures gracefully
@@ -335,20 +386,20 @@ export class CurrencyLayerAPI {
     const historical: HistoricalRatesResponse[] = [];
     
     historicalResults.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
+      if (result.status === 'fulfilled' && result.value) {
         historical.push(result.value);
       } else {
-        console.warn(`Failed to fetch historical data for day ${index + 1}:`, result.reason);
+        // Silently skip failed historical data - not critical
+        console.warn(`Historical data for day ${index + 1} unavailable, continuing...`);
       }
     });
 
     // Use available historical data (even if partial)
-    // This allows signal generation with available data
+    // Signal can be generated with just current data if needed
     if (historical.length === 0) {
       console.warn('No historical data available. Signal will be generated with current data only.');
-      // Don't throw error, proceed with current data only
-    } else if (historical.length < 3) {
-      console.warn(`Only ${historical.length} days of historical data available. Signal accuracy may be reduced.`);
+    } else if (historical.length < 2) {
+      console.warn(`Limited historical data (${historical.length} days). Signal accuracy may be reduced.`);
     }
 
     return { current, historical };
